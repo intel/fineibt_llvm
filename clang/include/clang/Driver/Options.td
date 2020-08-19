@@ -1296,6 +1296,8 @@ def fcf_protection_EQ : Joined<["-"], "fcf-protection=">, Flags<[CoreOption, CC1
 def fcf_protection : Flag<["-"], "fcf-protection">, Group<f_Group>, Flags<[CoreOption, CC1Option]>,
   Alias<fcf_protection_EQ>, AliasArgs<["full"]>,
   HelpText<"Enable cf-protection in 'full' mode">;
+def ffixed_r11 : Flag<["-"], "ffixed-r11">, Group<f_Group>, Flags<[CoreOption, CC1Option]>,
+	HelpText<"Reserve R11. (X86 Only)">;
 
 defm xray_instrument : OptInFFlag<"xray-instrument", "Generate XRay instrumentation sleds on function entry and exit">;
 

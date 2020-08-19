@@ -590,6 +590,9 @@ void CodeGenModule::Release() {
                               1);
   }
 
+  if (CodeGenOpts.FixedR11)
+    getModule().addModuleFlag(llvm::Module::Override, "fixed-r11", 1);
+
   if (Arch == llvm::Triple::aarch64 || Arch == llvm::Triple::aarch64_32 ||
       Arch == llvm::Triple::aarch64_be) {
     getModule().addModuleFlag(llvm::Module::Error,
