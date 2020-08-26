@@ -2676,10 +2676,16 @@ def AnyX86NoCallerSavedRegisters : InheritableAttr,
   let SimpleHandler = 1;
 }
 
-def AnyX86NoCfCheck : DeclOrTypeAttr, TargetSpecificAttr<TargetAnyX86>{
+def AnyX86NoCfCheck : DeclOrTypeAttr, TargetSpecificAttr<TargetAnyX86> {
   let Spellings = [GCC<"nocf_check">];
   let Subjects = SubjectList<[FunctionLike]>;
   let Documentation = [AnyX86NoCfCheckDocs];
+}
+
+def AnyX86CoarseCfCheck : DeclOrTypeAttr, TargetSpecificAttr<TargetAnyX86> {
+	let Spellings = [GCC<"coarsecf_check">];
+	let Subjects = SubjectList<[FunctionLike]>;
+	let Documentation = [AnyX86CoarseCfCheckDocs];
 }
 
 def X86ForceAlignArgPointer : InheritableAttr, TargetSpecificAttr<TargetAnyX86> {

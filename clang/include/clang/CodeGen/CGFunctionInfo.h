@@ -567,6 +567,9 @@ class CGFunctionInfo final
   /// Whether this function has nocf_check attribute.
   unsigned NoCfCheck : 1;
 
+  /// Whether this function has coarsecf_check attribute.
+  unsigned CoarseCfCheck : 1;
+
   RequiredArgs Required;
 
   /// The struct representing all arguments passed in memory.  Only used when
@@ -655,6 +658,9 @@ public:
   /// Whether this function has nocf_check attribute.
   bool isNoCfCheck() const { return NoCfCheck; }
 
+  /// Wheter this function has coarsecf_check attribute.
+  bool isCoarseCfCheck() const { return CoarseCfCheck; }
+
   /// getASTCallingConvention() - Return the AST-specified calling
   /// convention.
   CallingConv getASTCallingConvention() const {
@@ -681,7 +687,7 @@ public:
     return FunctionType::ExtInfo(isNoReturn(), getHasRegParm(), getRegParm(),
                                  getASTCallingConvention(), isReturnsRetained(),
                                  isNoCallerSavedRegs(), isNoCfCheck(),
-                                 isCmseNSCall());
+                                 isCmseNSCall(), isCoarseCfCheck());
   }
 
   CanQualType getReturnType() const { return getArgsBuffer()[0].type; }
@@ -723,6 +729,7 @@ public:
     ID.AddInteger(RegParm);
     ID.AddBoolean(NoCfCheck);
     ID.AddBoolean(CmseNSCall);
+    ID.AddBoolean(CoarseCfCheck);
     ID.AddInteger(Required.getOpaqueData());
     ID.AddBoolean(HasExtParameterInfos);
     if (HasExtParameterInfos) {
@@ -751,6 +758,7 @@ public:
     ID.AddInteger(info.getRegParm());
     ID.AddBoolean(info.getNoCfCheck());
     ID.AddBoolean(info.getCmseNSCall());
+    ID.AddBoolean(info.getCoarseCfCheck());
     ID.AddInteger(required.getOpaqueData());
     ID.AddBoolean(!paramInfos.empty());
     if (!paramInfos.empty()) {

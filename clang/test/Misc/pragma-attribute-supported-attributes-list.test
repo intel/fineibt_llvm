@@ -16,6 +16,7 @@
 // CHECK-NEXT: AlwaysDestroy (SubjectMatchRule_variable)
 // CHECK-NEXT: AlwaysInline (SubjectMatchRule_function)
 // CHECK-NEXT: Annotate ()
+// CHECK-NEXT: AnyX86CoarseCfCheck (SubjectMatchRule_hasType_functionType)
 // CHECK-NEXT: AnyX86NoCfCheck (SubjectMatchRule_hasType_functionType)
 // CHECK-NEXT: ArcWeakrefUnavailable (SubjectMatchRule_objc_interface)
 // CHECK-NEXT: ArmBuiltinAlias (SubjectMatchRule_function)

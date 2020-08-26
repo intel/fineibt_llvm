@@ -14,6 +14,7 @@
 #define LLVM_CLANG_LIB_BASIC_TARGETS_X86_H
 
 #include "OSTargets.h"
+#include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/TargetOptions.h"
 #include "llvm/ADT/Triple.h"
@@ -218,6 +219,13 @@ public:
   virtual bool
   checkCFProtectionBranchSupported(DiagnosticsEngine &Diags) const override {
     return true;
+  };
+
+  virtual bool
+  checkCFProtectionFineSupported(DiagnosticsEngine &Diags) const override {
+    if (getTriple().getArch() == llvm::Triple::x86_64)
+      return true;
+    return false;
   };
 
   virtual bool validateOperandSize(const llvm::StringMap<bool> &FeatureMap,

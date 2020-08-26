@@ -221,6 +221,7 @@ struct Configuration {
   bool zCopyreloc;
   bool zForceBti;
   bool zForceIbt;
+  bool zForceFineIbt;
   bool zGlobal;
   bool zHazardplt;
   bool zIfuncNoplt;
@@ -333,6 +334,12 @@ struct Configuration {
 
   // 4 for ELF32, 8 for ELF64.
   int wordsize;
+
+  // True if should use FineIBT model for the PLT
+  bool FineIBT = false;
+
+  // List of Fine IBT Hashes
+  std::vector<std::pair<StringRef, uint32_t>> *FineIBTHashes = NULL;
 };
 
 // The only instance of Configuration struct.

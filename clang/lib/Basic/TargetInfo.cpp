@@ -158,6 +158,12 @@ TargetInfo::checkCFProtectionReturnSupported(DiagnosticsEngine &Diags) const {
   return false;
 }
 
+bool TargetInfo::checkCFProtectionFineSupported(
+    DiagnosticsEngine &Diags) const {
+  Diags.Report(diag::err_opt_not_valid_on_target) << "cf-protection=fine";
+  return false;
+}
+
 /// getTypeName - Return the user string for the specified integer type enum.
 /// For example, SignedShort -> "short".
 const char *TargetInfo::getTypeName(IntType T) {

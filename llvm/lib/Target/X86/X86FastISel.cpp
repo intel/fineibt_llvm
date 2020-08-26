@@ -3487,6 +3487,11 @@ bool X86FastISel::fastLowerCall(CallLoweringInfo &CLI) {
     unsigned CallOpc = Is64Bit ? X86::CALL64r : X86::CALL32r;
     MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(CallOpc))
       .addReg(CalleeOp);
+    // TODO: add check for 64 bits for cf-protection flag
+    // set hash if Fine IBT flag
+    if (CI && CI->getModule()->getModuleFlag("cf-protection-fine") &&
+        !CI->doesCoarseCfCheck())
+      MIB->setPrototypeHash(CI->getFunctionType()->getPrototypeHash());
   } else {
     // Direct call.
     assert(GV && "Not a direct call");
@@ -3503,8 +3508,13 @@ bool X86FastISel::fastLowerCall(CallLoweringInfo &CLI) {
                            : (Is64Bit ? X86::CALL64pcrel32 : X86::CALLpcrel32);
 
     MIB = BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DbgLoc, TII.get(CallOpc));
-    if (NeedLoad)
+    if (NeedLoad) {
+      // set hash if this is an indirect call and Fine IBT is set
+      if (CI && CI->getModule()->getModuleFlag("cf-protection-fine") &&
+          !CI->doesCoarseCfCheck())
+        MIB->setPrototypeHash(CI->getFunctionType()->getPrototypeHash());
       MIB.addReg(Is64Bit ? X86::RIP : 0).addImm(1).addReg(0);
+    }
     if (Symbol)
       MIB.addSym(Symbol, OpFlags);
     else
@@ -3958,6 +3968,16 @@ bool X86FastISel::tryToFoldLoadIntoMI(MachineInstr *MI, unsigned OpNo,
       continue;
     MO.setReg(IndexReg);
   }
+
+  // Forward the prototype hash from original instruction to Result, preventing
+  // that calls lose their prototype hashes. These can't be retrieved in lower
+  // MachineInstr, as prototype info is lost in translation. Prototype hashes
+  // are required for Fine IBT.
+  // Since Hash is zero in the absence of cf-protection-fine flag, no need to
+  // check for it here.
+  uint32_t Hash = MI->getPrototypeHash();
+  if (Hash)
+    Result->setPrototypeHash(MI->getPrototypeHash());
 
   Result->addMemOperand(*FuncInfo.MF, createMachineMemOperandFor(LI));
   Result->cloneInstrSymbols(*FuncInfo.MF, *MI);

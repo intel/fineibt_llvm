@@ -548,7 +548,8 @@ template <class ELFT> void elf::createSyntheticSections() {
   add(in.relaIplt);
 
   if ((config->emachine == EM_386 || config->emachine == EM_X86_64) &&
-      (config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT)) {
+      (config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT) &&
+      (!(config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_FINEIBT))) {
     in.ibtPlt = make<IBTPltSection>();
     add(in.ibtPlt);
   }

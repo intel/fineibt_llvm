@@ -163,6 +163,15 @@ bool Type::isSizedDerivedType(SmallPtrSetImpl<Type*> *Visited) const {
   return cast<StructType>(this)->isSized(Visited);
 }
 
+uint32_t Type::getPrototypeHash() const {
+  // return 0xdeadbeef;
+  std::string Typestr;
+  raw_string_ostream O(Typestr);
+  print(O);
+  O.flush();
+  return hash_value(Typestr);
+}
+
 //===----------------------------------------------------------------------===//
 //                          Primitive 'Type' data
 //===----------------------------------------------------------------------===//

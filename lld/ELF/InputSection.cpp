@@ -314,7 +314,7 @@ std::string InputSectionBase::getLocation(uint64_t offset) {
   if (srcFile.empty())
     srcFile = toString(file);
 
-  if (Defined *d = getEnclosingFunction<ELFT>(offset))
+  if (Defined *d = this->getEnclosingFunction<ELFT>(offset))
     return srcFile + ":(function " + toString(*d) + ": " + secAndOffset + ")";
 
   // If there's no symbol, print out the offset in the section.
@@ -1202,7 +1202,7 @@ void InputSectionBase::adjustSplitStackFunctionPrologues(uint8_t *buf,
     if (enclosingPrologueAttempted(rel.offset, prologues))
       continue;
 
-    if (Defined *f = getEnclosingFunction<ELFT>(rel.offset)) {
+    if (Defined *f = this->getEnclosingFunction<ELFT>(rel.offset)) {
       prologues.insert(f);
       if (target->adjustPrologueForCrossSplitStack(buf + f->value, end,
                                                    f->stOther))

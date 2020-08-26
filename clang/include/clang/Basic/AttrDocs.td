@@ -4133,6 +4133,28 @@ pointer (by adding nocf_check prefix to the indirect-call instruction).
 }];
 }
 
+def AnyX86CoarseCfCheckDocs : Documentation {
+  let Category = DocCatFunction;
+  let Content = [{
+Jump Oriented Programming attacks rely on tampering with addresses used by
+indirect call / jmp, e.g. redirect control-flow to non-programmer
+intended bytes in the binary.
+X86 Supports Indirect Branch Tracking (IBT) as part of Control-Flow
+Enforcement Technology (CET). LLVM Supports Fine Indirect Branch Tracking,
+which extends the restrictions imposed by CET with additional prototype
+matching between function pointers and prototypes. The ``coarsecf_check`` has
+two roles:
+1 - Appertains to a function - add ENDBR instruction at the beginning of a the
+function without adding Fine IBT checks, this will prevent the creation of
+Fine IBT instrumentation which does the prototype checking. This is specially
+useful for making the function compatible with non-fine-ibt-enabled code that
+may invoke this function (like callbacks from a coarse-grained library into a
+fine-grained object).
+2 - Appertains to a function pointer - do not add code instrumentation which
+prepares prototype checking to indirect calls.
+}];
+}
+
 def SwiftCallDocs : Documentation {
   let Category = DocCatVariable;
   let Content = [{

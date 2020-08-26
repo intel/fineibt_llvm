@@ -799,6 +799,10 @@ void X86AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
 
 bool X86AsmBackend::mayNeedRelaxation(const MCInst &Inst,
                                       const MCSubtargetInfo &STI) const {
+  // Check if MCInst has do not relax flag set.
+  if (Inst.getFlags() & X86::EXTRA_DO_NOT_RELAX)
+    return false;
+
   // Branches can always be relaxed in either mode.
   if (getRelaxedOpcodeBranch(Inst, false) != Inst.getOpcode())
     return true;

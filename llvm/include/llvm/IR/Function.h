@@ -570,6 +570,12 @@ public:
   /// Determine if the function should not perform indirect branch tracking.
   bool doesNoCfCheck() const { return hasFnAttribute(Attribute::NoCfCheck); }
 
+  /// Determine if the function should perform fine or coarse indirect branch
+  /// tracking.
+  bool doesCoarseCfCheck() const {
+    return hasFnAttribute(Attribute::CoarseCfCheck);
+  }
+
   /// Determine if the function cannot unwind.
   bool doesNotThrow() const {
     return hasFnAttribute(Attribute::NoUnwind);

@@ -428,6 +428,9 @@ void X86PassConfig::addIRPasses() {
       addPass(createCFGuardCheckPass());
     }
   }
+
+  if (TT.getArch() == Triple::x86_64)
+    addPass(createFineIBTHashesSectionPass());
 }
 
 bool X86PassConfig::addInstSelector() {

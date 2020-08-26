@@ -211,6 +211,7 @@ enum Kind {
   kw_noreturn,
   kw_nosync,
   kw_nocf_check,
+  kw_coarsecf_check,
   kw_nounwind,
   kw_null_pointer_is_valid,
   kw_optforfuzzing,

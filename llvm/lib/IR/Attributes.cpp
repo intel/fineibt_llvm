@@ -395,6 +395,8 @@ std::string Attribute::getAsString(bool InAttrGrp) const {
     return "willreturn";
   if (hasAttribute(Attribute::NoCfCheck))
     return "nocf_check";
+  if (hasAttribute(Attribute::CoarseCfCheck))
+    return "coarsecf_check";
   if (hasAttribute(Attribute::NoRecurse))
     return "norecurse";
   if (hasAttribute(Attribute::NoUnwind))

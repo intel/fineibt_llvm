@@ -1161,6 +1161,16 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
     if (Name == "full") {
       Opts.CFProtectionReturn = 1;
       Opts.CFProtectionBranch = 1;
+    } else if (Name == "fine") {
+      if (T.getArch() != llvm::Triple::x86_64) {
+        Diags.Report(diag::warn_drv_unsupported_opt_for_target)
+            << "-fcf-protection=fine"
+            << "x86 (32bits)";
+      } else {
+        Opts.CFProtectionFine = 1;
+        Opts.CFProtectionReturn = 1;
+        Opts.CFProtectionBranch = 1;
+      }
     } else if (Name == "return")
       Opts.CFProtectionReturn = 1;
     else if (Name == "branch")
@@ -2564,7 +2574,7 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
 
   if (const Arg *A = Args.getLastArg(OPT_fcf_protection_EQ)) {
     StringRef Name = A->getValue();
-    if (Name == "full" || Name == "branch") {
+    if (Name == "full" || Name == "branch" || Name == "fine") {
       Opts.CFProtectionBranch = 1;
     }
   }
@@ -3605,6 +3615,10 @@ static void ParsePreprocessorArgs(PreprocessorOptions &Opts, ArgList &Args,
       Opts.addMacroDef("__CET__=2");
     else if (Name == "full")
       Opts.addMacroDef("__CET__=3");
+    else if (Name == "fine") {
+      // FineIBT bit is 0x11, but it depends on 0x1, which is branch/IBT.
+      Opts.addMacroDef("__CET__=0x11");
+    }
   }
 
   // Add macros from the command line.

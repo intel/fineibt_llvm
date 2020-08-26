@@ -130,6 +130,9 @@ def NoSync : EnumAttr<"nosync">;
 /// Disable Indirect Branch Tracking.
 def NoCfCheck : EnumAttr<"nocf_check">;
 
+/// Disable Fine Indirect Branch Tracking.
+def CoarseCfCheck : EnumAttr<"coarsecf_check">;
+
 /// Function doesn't unwind stack.
 def NoUnwind : EnumAttr<"nounwind">;
 

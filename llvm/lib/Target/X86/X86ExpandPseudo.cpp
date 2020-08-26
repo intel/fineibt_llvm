@@ -275,6 +275,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
 
     MachineInstr &NewMI = *std::prev(MBBI);
     NewMI.copyImplicitOps(*MBBI->getParent()->getParent(), *MBBI);
+    NewMI.setPrototypeHash(MI.getPrototypeHash());
 
     // Update the call site info.
     if (MBBI->isCandidateForCallSiteEntry())

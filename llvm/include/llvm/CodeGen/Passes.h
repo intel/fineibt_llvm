@@ -490,6 +490,10 @@ namespace llvm {
   /// The pass fixups statepoint machine instruction to replace usage of
   /// caller saved registers with stack slots.
   extern char &FixupStatepointCallerSavedID;
+
+  /// Creates FineIBT section with hashes used during fine-grained checks.
+  /// This section is needed for correct PLT emission.
+  ModulePass *createFineIBTHashesSectionPass();
 } // End llvm namespace
 
 #endif

@@ -51,6 +51,7 @@ static Attribute::AttrKind parseAttrKind(StringRef Kind) {
       .Case("noredzone", Attribute::NoRedZone)
       .Case("noreturn", Attribute::NoReturn)
       .Case("nocf_check", Attribute::NoCfCheck)
+      .Case("coarsecf_check", Attribute::CoarseCfCheck)
       .Case("norecurse", Attribute::NoRecurse)
       .Case("nounwind", Attribute::NoUnwind)
       .Case("optforfuzzing", Attribute::OptForFuzzing)

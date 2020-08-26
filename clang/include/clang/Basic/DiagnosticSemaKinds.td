@@ -3140,6 +3140,9 @@ def warn_attribute_ignored_on_inline :
 def warn_nocf_check_attribute_ignored :
   Warning<"'nocf_check' attribute ignored; use -fcf-protection to enable the attribute">,
   InGroup<IgnoredAttributes>;
+def warn_coarsecf_check_attribute_ignored :
+  Warning<"'coarsecf_check' attribute ignored; use -fcf-protection to enable the attribute">,
+  InGroup<IgnoredAttributes>;
 def warn_attribute_after_definition_ignored : Warning<
   "attribute %0 after definition is ignored">,
    InGroup<IgnoredAttributes>;

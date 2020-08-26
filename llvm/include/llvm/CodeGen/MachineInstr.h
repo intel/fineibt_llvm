@@ -129,6 +129,12 @@ private:
                                         // anything other than to convey comment
                                         // information to AsmPrinter.
 
+  uint32_t PrototypeHash = 0; // Prototype Hash used by fine IBT.
+
+  // TODO: embed this into Flags?
+  bool DoNotRelax = 0; // DoNotRelax flag used to prevent the
+                       // instruction from being relaxed.
+
   // OperandCapacity has uint8_t size, so it should be next to AsmPrinterFlags
   // to properly pack.
   using OperandCapacity = ArrayRecycler<MachineOperand>::Capacity;
@@ -344,6 +350,18 @@ public:
   void clearFlag(MIFlag Flag) {
     Flags &= ~((uint16_t)Flag);
   }
+
+  /// Set the prototype hash.
+  void setPrototypeHash(uint32_t Hash) { PrototypeHash = Hash; }
+
+  /// Return the prorotype hash.
+  uint32_t getPrototypeHash() const { return PrototypeHash; }
+
+  /// Set do not relax.
+  void setDoNotRelax(bool Flag) { DoNotRelax = Flag; }
+
+  /// Get DoNotRelax property.
+  bool getDoNotRelax() const { return DoNotRelax; }
 
   /// Return true if MI is in a bundle (but not the first MI in a bundle).
   ///

@@ -147,6 +147,10 @@ MachineInstr::MachineInstr(MachineFunction &MF, const MachineInstr &MI)
 
   // Copy all the sensible flags.
   setFlags(MI.Flags);
+
+  // Copy Prototoype Hash
+  uint32_t Hash = MI.getPrototypeHash();
+  setPrototypeHash(Hash);
 }
 
 void MachineInstr::moveBefore(MachineInstr *MovePos) {

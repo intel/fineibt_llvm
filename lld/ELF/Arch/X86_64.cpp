@@ -8,6 +8,7 @@
 
 #include "InputFiles.h"
 #include "OutputSections.h"
+#include "SymbolTable.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
@@ -386,7 +387,8 @@ void X86_64::writePltHeader(uint8_t *buf) const {
   };
   memcpy(buf, pltData, sizeof(pltData));
   uint64_t gotPlt = in.gotPlt->getVA();
-  uint64_t plt = in.ibtPlt ? in.ibtPlt->getVA() : in.plt->getVA();
+  uint64_t plt;
+  plt = in.ibtPlt ? in.ibtPlt->getVA() : in.plt->getVA();
   write32le(buf + 2, gotPlt - plt + 2); // GOTPLT+8
   write32le(buf + 8, gotPlt - plt + 4); // GOTPLT+16
 }
@@ -949,6 +951,86 @@ void IntelIBT::writeIBTPlt(uint8_t *buf, size_t numEntries) const {
   }
 }
 
+namespace {
+class IntelFineIBT : public X86_64 {
+public:
+  IntelFineIBT();
+  void writeGotPlt(uint8_t *buf, const Symbol &s) const override;
+  void writePlt(uint8_t *buf, const Symbol &sym,
+                uint64_t pltEntryAddr) const override;
+
+  static const unsigned IBTPltHeaderSize = 16;
+};
+} // namespace
+
+IntelFineIBT::IntelFineIBT() {
+  pltHeaderSize = 0;
+  pltEntrySize = 48;
+}
+
+void IntelFineIBT::writeGotPlt(uint8_t *buf, const Symbol &s) const {
+  write64le(buf, s.getPltVA() + 6);
+}
+
+void IntelFineIBT::writePlt(uint8_t *buf, const Symbol &sym,
+                            uint64_t pltEntryAddr) const {
+
+  StringRef name = sym.getName();
+  uint32_t hash = 0;
+
+  // FineIBTHashes is only set if FineIBT is in place. If it is not set, hash
+  // will be zero, and the generic FineIBT plt entry will be emitted. If one
+  // out of N objects in the final linked object was compiled with FineIBT, then
+  // the final DSO needs to be fully emitted with FineIBT generic PLT.
+  if (config->FineIBTHashes) {
+    for (auto item : *config->FineIBTHashes) {
+      if (name.equals(item.first)) {
+        hash = item.second;
+        break;
+      }
+    }
+  }
+
+  if (!hash) {
+    warn("No FineIBT hash found for " + name + ". Disabling PLT checks.");
+
+    const uint8_t Inst[] = {
+        // fine IBT checkings
+        0xf3, 0x0f, 0x1e, 0xfa,             // endbr64
+        0xff, 0x25, 0x00, 0x00, 0x00, 0x00, // jmpq *got(%rip)
+        0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+        0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, //32b
+        0xff, 0x25, 0x00, 0x00, 0x00, 0x00,
+        0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc}; // 48b
+
+    memcpy(buf, Inst, sizeof(Inst));
+    write32le(buf + 6, sym.getGotPltVA() - pltEntryAddr - 10);
+    write32le(buf + 34, sym.getGotPltVA() - pltEntryAddr - 38);
+
+  } else {
+    const uint8_t Inst[] = {
+        // fine IBT checkings
+        0xf3, 0x0f, 0x1e, 0xfa,                   // endbr64
+        0x41, 0x81, 0xfb, 0x00, 0x00, 0x00, 0x00, // cmp $0x0, r11d
+        0x74, 0x19,                               // je ok
+        0x64, 0xf6, 0x04, 0x25, 0x48, 0x00, 0x00, // testb $0x10,%fs:0x48
+        0x00, 0x10,                               // (FineIBT ELF bit)
+        0x74, 0x0e,                               // jne ok
+        0xf4,                                     // hlt
+        0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, // nop nop
+        // now the actual PLT starts
+        0x41, 0xbb, 0x00, 0x00, 0x00, 0x00, // mov $0x0, r11d
+        0xff, 0x25, 0x00, 0x00, 0x00, 0x00, // jmpq *got(%rip)
+        0xcc, 0xcc, 0xcc, 0xcc              // nops
+    };
+
+    memcpy(buf, Inst, sizeof(Inst));
+    write32le(buf + 7, hash);
+    write32le(buf + 34, hash);
+    write32le(buf + 40, sym.getGotPltVA() - pltEntryAddr - 44);
+  }
+}
+
 // These nonstandard PLT entries are to migtigate Spectre v2 security
 // vulnerability. In order to mitigate Spectre v2, we want to avoid indirect
 // branch instructions such as `jmp *GOTPLT(%rip)`. So, in the following PLT
@@ -1073,6 +1155,18 @@ static TargetInfo *getTargetInfo() {
       return &t;
     }
     static Retpoline t;
+    return &t;
+  }
+
+  // TODO: we will disable mixed linking. fix this mess.
+  // There are situations where FineIBT and non-FineIBT object files are being
+  // linked. This will lead into a final DSO which is non-FineIBT (without the
+  // GNU_PROPERTY_X86_FEATURE_1_FINEIBT bit) but have some pieces optimized as
+  // FineIBT objects. Because of that, the PLT of this DSO still has to follow
+  // the FineIBT model. Thus, we use the config to map this setting instead of
+  // simply checking the bit.
+  if (config->FineIBT) {
+    static IntelFineIBT t;
     return &t;
   }
 

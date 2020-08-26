@@ -20,8 +20,15 @@
 
 #ifdef __CET__
 
+// FineIBT sets __CET__ = 0x11 because it requires IBT to also be set. Thus,
+// check FineIBT before IBT, to avoid additional checks.
 # ifdef __LP64__
-#  if __CET__ & 0x1
+#  if __CET__ & 0x10
+#    define _CET_ENDBR endbr64;     \
+                       nopl 0x200(%rax,%rax,1); \
+                       nopw %fs:0x200(%rax,%rax,1); \
+                       nopw %fs:0x200(%rax,%rax,1);
+#  elif __CET__ & 0x1
 #    define _CET_ENDBR endbr64
 #  else
 #    define _CET_ENDBR

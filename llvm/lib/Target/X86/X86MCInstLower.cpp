@@ -491,6 +491,11 @@ static unsigned convertTailJumpOpcode(unsigned Opcode) {
 
 void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   OutMI.setOpcode(MI->getOpcode());
+  if (MI->getDoNotRelax()) {
+    unsigned Flags = OutMI.getFlags();
+    Flags |= X86::EXTRA_DO_NOT_RELAX;
+    OutMI.setFlags(Flags);
+  }
 
   for (const MachineOperand &MO : MI->operands())
     if (auto MaybeMCOp = LowerMachineOperand(MI, MO))

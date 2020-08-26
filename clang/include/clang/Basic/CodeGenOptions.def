@@ -98,6 +98,8 @@ CODEGENOPT(CFProtectionReturn , 1, 0) ///< if -fcf-protection is
                                       ///< set to full or return.
 CODEGENOPT(CFProtectionBranch , 1, 0) ///< if -fcf-protection is
                                       ///< set to full or branch.
+CODEGENOPT(CFProtectionFine   , 1, 0) ///< if -fcf-protection is
+                                      ///< set to fine-grained.
 CODEGENOPT(FixedR11 , 1, 0) ///< Reserve R11
 
 CODEGENOPT(XRayInstrumentFunctions , 1, 0) ///< Set when -fxray-instrument is

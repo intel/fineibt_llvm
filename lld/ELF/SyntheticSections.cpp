@@ -2500,7 +2500,8 @@ PltSection::PltSection()
   // On x86 when IBT is enabled, this section contains the second PLT (lazy
   // symbol resolvers).
   if ((config->emachine == EM_386 || config->emachine == EM_X86_64) &&
-      (config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT))
+      (config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_IBT) &&
+      (!(config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_FINEIBT)))
     name = ".plt.sec";
 
   // The PLT needs to be writable on SPARC as the dynamic linker will

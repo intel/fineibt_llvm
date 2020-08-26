@@ -628,8 +628,12 @@ void X86AsmPrinter::emitStartOfAsmFile(Module &M) {
   if (TT.isOSBinFormatELF()) {
     // Assemble feature flags that may require creation of a note section.
     unsigned FeatureFlagsAnd = 0;
-    if (M.getModuleFlag("cf-protection-branch"))
+    if (M.getModuleFlag("cf-protection-branch")) {
       FeatureFlagsAnd |= ELF::GNU_PROPERTY_X86_FEATURE_1_IBT;
+      if (M.getModuleFlag("cf-protection-fine")) {
+        FeatureFlagsAnd |= ELF::GNU_PROPERTY_X86_FEATURE_1_FINEIBT;
+      }
+    }
     if (M.getModuleFlag("cf-protection-return"))
       FeatureFlagsAnd |= ELF::GNU_PROPERTY_X86_FEATURE_1_SHSTK;
 

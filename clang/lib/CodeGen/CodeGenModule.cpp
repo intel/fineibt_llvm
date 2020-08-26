@@ -590,6 +590,12 @@ void CodeGenModule::Release() {
                               1);
   }
 
+  if (CodeGenOpts.CFProtectionFine &&
+      Target.checkCFProtectionFineSupported(getDiags())) {
+    // Indicate that we want to instrument fine-grained control flow protection.
+    getModule().addModuleFlag(llvm::Module::Override, "cf-protection-fine", 1);
+  }
+
   if (CodeGenOpts.FixedR11)
     getModule().addModuleFlag(llvm::Module::Override, "fixed-r11", 1);
 

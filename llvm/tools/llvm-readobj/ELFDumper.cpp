@@ -4868,6 +4868,7 @@ static std::string getGNUProperty(uint32_t Type, uint32_t DataSize,
     } else {
       DumpBit(GNU_PROPERTY_X86_FEATURE_1_IBT, "IBT");
       DumpBit(GNU_PROPERTY_X86_FEATURE_1_SHSTK, "SHSTK");
+      DumpBit(GNU_PROPERTY_X86_FEATURE_1_FINEIBT, "FINEIBT");
     }
     if (PrData)
       OS << format("<unknown flags: 0x%x>", PrData);

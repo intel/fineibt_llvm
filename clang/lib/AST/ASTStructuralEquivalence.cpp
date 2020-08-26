@@ -600,6 +600,8 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
     return false;
   if (EI1.getNoCfCheck() != EI2.getNoCfCheck())
     return false;
+  if (EI1.getCoarseCfCheck() != EI2.getCoarseCfCheck())
+    return false;
 
   return true;
 }

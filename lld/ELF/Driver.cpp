@@ -362,6 +362,9 @@ static void checkOptions() {
   if (config->zRetpolineplt && config->zForceIbt)
     error("-z force-ibt may not be used with -z retpolineplt");
 
+  if (config->zRetpolineplt && config->zForceFineIbt)
+    error("-z force-fine-ibt may not be used with -z retpolineplt");
+
   if (config->emachine != EM_AARCH64) {
     if (config->zPacPlt)
       error("-z pac-plt only supported on AArch64");
@@ -441,8 +444,8 @@ static uint8_t getZStartStopVisibility(opt::InputArgList &args) {
 static bool isKnownZFlag(StringRef s) {
   return s == "combreloc" || s == "copyreloc" || s == "defs" ||
          s == "execstack" || s == "force-bti" || s == "force-ibt" ||
-         s == "global" || s == "hazardplt" || s == "ifunc-noplt" ||
-         s == "initfirst" || s == "interpose" ||
+         s == "force-fine-ibt" || s == "global" || s == "hazardplt" ||
+         s == "ifunc-noplt" || s == "initfirst" || s == "interpose" ||
          s == "keep-text-section-prefix" || s == "lazy" || s == "muldefs" ||
          s == "separate-code" || s == "separate-loadable-segments" ||
          s == "nocombreloc" || s == "nocopyreloc" || s == "nodefaultlib" ||
@@ -1059,6 +1062,7 @@ static void readConfigs(opt::InputArgList &args) {
   config->zCopyreloc = getZFlag(args, "copyreloc", "nocopyreloc", true);
   config->zForceBti = hasZOption(args, "force-bti");
   config->zForceIbt = hasZOption(args, "force-ibt");
+  config->zForceFineIbt = hasZOption(args, "force-fine-ibt");
   config->zGlobal = hasZOption(args, "global");
   config->zGnustack = getZGnuStack(args);
   config->zHazardplt = hasZOption(args, "hazardplt");
@@ -1940,6 +1944,12 @@ template <class ELFT> static uint32_t getAndFeatures() {
                          "GNU_PROPERTY_AARCH64_FEATURE_1_PAC property");
       features |= GNU_PROPERTY_AARCH64_FEATURE_1_PAC;
     }
+    if (config->zForceFineIbt &&
+        !(features & GNU_PROPERTY_X86_FEATURE_1_FINEIBT)) {
+      warn(toString(f) + ": -z force-fine-ibt: file does not have "
+                         "GNU_PROPERTY_X86_FEATURE_1_FINEIBT property");
+      features |= GNU_PROPERTY_X86_FEATURE_1_FINEIBT;
+    }
     ret &= features;
   }
 
@@ -1947,7 +1957,96 @@ template <class ELFT> static uint32_t getAndFeatures() {
   if (config->zShstk)
     ret |= GNU_PROPERTY_X86_FEATURE_1_SHSTK;
 
+	// If IBT is off, disable FINEIBT.
+	if (!(ret & GNU_PROPERTY_X86_FEATURE_1_IBT)
+      && (ret & GNU_PROPERTY_X86_FEATURE_1_FINEIBT)) {
+    warn("FineIBT disabled because GNU_PROPERTY_X86_FEATURE_1_IBT is off");
+    ret &= !(GNU_PROPERTY_X86_FEATURE_1_FINEIBT);
+  }
+
   return ret;
+}
+
+static Symbol *getEnclosingFunction(uint64_t offset, InputSectionBase *s) {
+  for (Symbol *b : s->file->getSymbols()) {
+    if (Defined *d = dyn_cast<Defined>(b)) {
+      if (d->section == s && d->type == STT_FUNC && d->value <= offset &&
+          offset < d->value + d->size) {
+        return d;
+      }
+    }
+  }
+  return nullptr;
+}
+
+template <class ELFT> static bool hasFineIBT() {
+  if (config->emachine != EM_X86_64) return false;
+
+  bool fineibt = false;
+
+  for (InputFile *f : objectFiles) {
+    uint32_t features = cast<ObjFile<ELFT>>(f)->andFeatures;
+    if (features & GNU_PROPERTY_X86_FEATURE_1_FINEIBT)
+      fineibt = true;
+
+    // Linking FineIBT with non-fineIBT can lead into faulty binaries.
+    // Check if this is the case and issue a warning here.
+    else if (fineibt) {
+      warn(toString(f) + " being linked to FineIBT objects. This leads into"
+                         " broken binaries.");
+      break;
+    }
+  }
+
+  // if linking final DSO, verify if eager binding is set.
+  // only enforce if all object files are FINEIBT enabled.
+  if (config->andFeatures & GNU_PROPERTY_X86_FEATURE_1_FINEIBT) {
+    if (!config->isStatic && !config->relocatable && !config->zNow)
+      fatal("Dynamic FineIBT DSOs require eager binding (-z now).");
+  }
+
+  return fineibt;
+}
+
+static void parseFineIBTHashes(InputSectionBase *s) {
+  if (!(s && s->name == ".ibt.fine.plt"))
+    fatal("Trying to build Fine IBT Hash List out of the wrong section.\n");
+
+  if (!config->FineIBTHashes)
+    config->FineIBTHashes = new std::vector<std::pair<StringRef, uint32_t>>;
+
+  uint32_t hash;
+  StringRef name;
+  bool insert;
+  auto data = s->data();
+
+  for (long unsigned int offset = 3; offset < data.size(); offset += 16) {
+    insert = true;
+    Symbol *sym = getEnclosingFunction(offset, s);
+
+    // check if we got a symbol
+    if (!sym)
+      continue;
+
+    name = sym->getName();
+    if (!name.startswith("__ibt_fine_plt_"))
+      continue;
+    name = name.drop_front(15);
+
+    // if we got a symbol, ensure it is not already listed
+    for (auto item : *config->FineIBTHashes) {
+      if (name == item.first) {
+        insert = false;
+        break;
+        ;
+      }
+    }
+    if (insert) {
+      memcpy(&hash, &data[offset], sizeof(uint32_t));
+      config->FineIBTHashes->push_back(
+          std::pair<StringRef, uint32_t>(name, hash));
+    }
+  }
 }
 
 // Do actual linking. Note that when this function is called,
@@ -2164,10 +2263,32 @@ template <class ELFT> void LinkerDriver::link(opt::InputArgList &args) {
   // contain a hint to tweak linker's and loader's behaviors.
   config->andFeatures = getAndFeatures<ELFT>();
 
+  // Check if all to-be-linked objects have FineIBT. There are situations where
+  // FineIBT and non-FineIBT object files are being linked, potentially leading
+  // into broken final DSOs. In those cases where this is intentional, we still
+  // need to identify the hashes so we can build a solid plt table.
+  config->FineIBT = hasFineIBT<ELFT>();
+
   // The Target instance handles target-specific stuff, such as applying
   // relocations or writing a PLT section. It also contains target-dependent
   // values such as a default image base address.
   target = getTarget();
+
+  // If config->FineIBT is set, we have to discard all .ibt.fine.plt sections.
+  // Also, if the linked object is going to be FineIBT-enabled, parse the hash
+  // entries from .ibt.fine.plt.
+  if (config->FineIBT) {
+    for (InputFile *f : objectFiles) {
+      for (InputSectionBase *s : f->getSections()) {
+        if (s && s->name == ".ibt.fine.plt") {
+          parseFineIBTHashes(s);
+          // final DSOs don't need the .ibt.fine.plt section.
+          if (!config->isStatic && !config->relocatable)
+            *s = InputSection::discarded;
+        }
+      }
+    }
+  }
 
   config->eflags = target->calcEFlags();
   // maxPageSize (sometimes called abi page size) is the maximum page size that

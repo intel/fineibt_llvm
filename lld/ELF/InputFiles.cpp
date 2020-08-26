@@ -874,6 +874,18 @@ static InputSection *toRegularSection(MergeInputSection *sec) {
                             sec->data(), sec->name);
 }
 
+static Symbol *getEnclosingFunction(uint64_t offset, InputSection *s) {
+  for (Symbol *b : s->file->getSymbols()) {
+    if (Defined *d = dyn_cast<Defined>(b)) {
+      if (d->section == s && d->type == STT_FUNC && d->value <= offset &&
+          offset < d->value + d->size) {
+        return d;
+      }
+    }
+  }
+  return nullptr;
+}
+
 template <class ELFT>
 InputSectionBase *ObjFile<ELFT>::createInputSection(const Elf_Shdr &sec) {
   StringRef name = getSectionName(sec);

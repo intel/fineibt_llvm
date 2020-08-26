@@ -1778,6 +1778,7 @@ bool PeepholeOptimizer::runOnMachineFunction(MachineFunction &MF) {
               // Update the call site info.
               if (MI->shouldUpdateCallSiteInfo())
                 MI->getMF()->moveCallSiteInfo(MI, FoldMI);
+              FoldMI->setPrototypeHash(MI->getPrototypeHash());
               MI->eraseFromParent();
               DefMI->eraseFromParent();
               MRI->markUsesInDebugValueAsUndef(FoldedReg);

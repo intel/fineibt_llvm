@@ -66,6 +66,10 @@ namespace X86 {
     IP_USE_DISP32 = 256,
   };
 
+  enum EXTRAINFO {
+    EXTRA_DO_NOT_RELAX = 512,
+  };
+
   enum OperandType : unsigned {
     /// AVX512 embedded rounding control. This should only have values 0-3.
     OPERAND_ROUNDING_CONTROL = MCOI::OPERAND_FIRST_TARGET,
