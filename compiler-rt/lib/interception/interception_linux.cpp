@@ -65,16 +65,16 @@ bool InterceptFunction(const char *name, uptr *ptr_to_real, uptr func,
 
 // Android and Solaris do not have dlvsym
 #if !SANITIZER_ANDROID && !SANITIZER_SOLARIS && !SANITIZER_OPENBSD
-static void *GetFuncAddr(const char *name, const char *ver) {
-  return dlvsym(RTLD_NEXT, name, ver);
-}
+//static void *GetFuncAddr(const char *name, const char *ver) {
+//  return dlvsym(RTLD_NEXT, name, ver);
+//}
 
-bool InterceptFunction(const char *name, const char *ver, uptr *ptr_to_real,
-                       uptr func, uptr wrapper) {
-  void *addr = GetFuncAddr(name, ver);
-  *ptr_to_real = (uptr)addr;
-  return addr && (func == wrapper);
-}
+//bool InterceptFunction(const char *name, const char *ver, uptr *ptr_to_real,
+//                       uptr func, uptr wrapper) {
+//  void *addr = GetFuncAddr(name, ver);
+//  *ptr_to_real = (uptr)addr;
+//  return addr && (func == wrapper);
+//}
 #endif  // !SANITIZER_ANDROID
 
 }  // namespace __interception
