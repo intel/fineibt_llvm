@@ -164,12 +164,12 @@ bool Type::isSizedDerivedType(SmallPtrSetImpl<Type*> *Visited) const {
 }
 
 uint32_t Type::getPrototypeHash() const {
-  // return 0xdeadbeef;
-  std::string Typestr;
-  raw_string_ostream O(Typestr);
-  print(O);
-  O.flush();
-  return hash_value(Typestr);
+  return 0xdeadbeef;
+  //std::string Typestr;
+  //raw_string_ostream O(Typestr);
+  //print(O);
+  //O.flush();
+  //return hash_value(Typestr);
 }
 
 //===----------------------------------------------------------------------===//
