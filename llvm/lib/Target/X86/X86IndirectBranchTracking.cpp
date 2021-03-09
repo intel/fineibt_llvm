@@ -23,6 +23,7 @@
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/RegisterScavenging.h"
 #include "llvm/MC/MCSymbolELF.h"
 #include <iostream>
 
@@ -207,6 +208,8 @@ static bool FixDCalls(MachineFunction &MF) {
 
 static bool FixICalls(MachineFunction &MF) {
   bool Changed = false;
+  RegScavenger RS;
+  unsigned AuxReg;
 
   const X86Subtarget &SubTarget = MF.getSubtarget<X86Subtarget>();
   auto TII = SubTarget.getInstrInfo();
@@ -228,12 +231,47 @@ static bool FixICalls(MachineFunction &MF) {
       // Instructions with attribute CoarseCfCheck have Hash = 0. Skip it.
       if (I.getPrototypeHash() == 0) {
         LLVM_DEBUG(WithColor::warning()
-                   << "Null FineIBT Hash in " << MF.getName() << "\n");
-      } else {
-        Changed = true;
-        BuildMI(BB, I, DebugLoc(), TII->get(X86::MOV64ri), X86::R11)
-            .addImm(I.getPrototypeHash());
+                     << "FineIBT: NULL Hash in " << MF.getName() << "\n");
       }
+      // if R11 is used as a pointer, we need to use a different register.
+      MachineOperand &MO = I.getOperand(0);
+      if (MO.isReg() && MO.getReg() == X86::R11) {
+        RS.enterBasicBlock(BB);
+        RS.forward(I);
+        AuxReg = RS.FindUnusedReg(&X86::GR64RegClass);
+        if (!AuxReg) {
+          // TODO: this case needs to be fixed with register scavenging.
+          WithColor::warning()
+            << "FineIBT: No register available in " << MF.getName() << ".\n";
+          continue;
+        }
+        MO.setReg(AuxReg);
+        BuildMI(BB, I, DebugLoc(), TII->get(X86::MOV64rr), AuxReg)
+          .addReg(X86::R11);
+      }
+
+      // for CALL64m/TAILJMPm we need to also check the second register
+      if (Opcode == X86::CALL64m || Opcode == X86::TAILJMPm64)
+      {
+        MachineOperand &MO = I.getOperand(2);
+        if (MO.isReg() && MO.getReg() == X86::R11) {
+          RegScavenger RS;
+          RS.enterBasicBlock(BB);
+          RS.forward(I);
+          AuxReg = RS.FindUnusedReg(&X86::GR64RegClass);
+          if (!AuxReg) {
+            WithColor::warning()
+              << "FineIBT: No register available in " << MF.getName() << ".\n";
+            continue;
+          }
+          MO.setReg(AuxReg);
+          BuildMI(BB, I, DebugLoc(), TII->get(X86::MOV64rr), AuxReg)
+            .addReg(X86::R11);
+        }
+      }
+      Changed = true;
+      BuildMI(BB, I, DebugLoc(), TII->get(X86::MOV64ri), X86::R11)
+        .addImm(I.getPrototypeHash());
     }
   }
   return Changed;
