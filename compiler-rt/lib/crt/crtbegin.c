@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-#if defined __CET__ && __CET__ & 0x8
+#if defined __CET__ && __CET__ & 0x10
 #define _COARSECF_CHECK __attribute__((coarsecf_check))
 #else
 #define _COARSECF_CHECK
